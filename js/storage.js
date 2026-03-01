@@ -1,0 +1,184 @@
+// Storage Layer — localStorage with IndexedDB upgrade path
+// All data stays on-device. No external calls.
+
+const STORAGE_PREFIX = 'itrain_';
+
+// --- localStorage helpers (primary storage) ---
+
+/**
+ * Save a value to localStorage.
+ * @param {string} key
+ * @param {*} value - Will be JSON-serialized
+ */
+export function save(key, value) {
+    try {
+        localStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(value));
+    } catch (e) {
+        console.warn('Storage save failed:', e);
+    }
+}
+
+/**
+ * Load a value from localStorage.
+ * @param {string} key
+ * @param {*} fallback - Default value if key not found
+ * @returns {*}
+ */
+export function load(key, fallback = null) {
+    try {
+        const raw = localStorage.getItem(STORAGE_PREFIX + key);
+        return raw !== null ? JSON.parse(raw) : fallback;
+    } catch (e) {
+        console.warn('Storage load failed:', e);
+        return fallback;
+    }
+}
+
+/**
+ * Remove a value from localStorage.
+ * @param {string} key
+ */
+export function remove(key) {
+    localStorage.removeItem(STORAGE_PREFIX + key);
+}
+
+/**
+ * Clear all iTrain data from localStorage.
+ */
+export function clearAll() {
+    const keysToRemove = [];
+    for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith(STORAGE_PREFIX)) {
+            keysToRemove.push(k);
+        }
+    }
+    keysToRemove.forEach(k => localStorage.removeItem(k));
+}
+
+// --- Session History ---
+
+/**
+ * Save a completed workout session.
+ * @param {object} session - { date, exercises: [{ id, weight, sets, reps, rpe, skipped, swapped }] }
+ */
+export function saveSession(session) {
+    const history = load('history', []);
+    history.push({
+        ...session,
+        date: session.date || new Date().toISOString()
+    });
+    save('history', history);
+}
+
+/**
+ * Get all saved sessions, newest first.
+ * @returns {object[]}
+ */
+export function getHistory() {
+    return load('history', []).sort((a, b) => new Date(b.date) - new Date(a.date));
+}
+
+/**
+ * Get recent sessions for a specific exercise.
+ * @param {string} exerciseId
+ * @param {number} count - Number of sessions to return
+ * @returns {object[]}
+ */
+export function getExerciseHistory(exerciseId, count = 5) {
+    const history = getHistory();
+    const results = [];
+
+    for (const session of history) {
+        if (!session.exercises) continue;
+        const entry = session.exercises.find(e => e.id === exerciseId && !e.skipped);
+        if (entry) {
+            results.push({ ...entry, date: session.date });
+            if (results.length >= count) break;
+        }
+    }
+
+    return results;
+}
+
+/**
+ * Get the max volume ever recorded for an exercise.
+ * @param {string} exerciseId
+ * @returns {number}
+ */
+export function getMaxVolume(exerciseId) {
+    const history = getHistory();
+    let max = 0;
+
+    for (const session of history) {
+        if (!session.exercises) continue;
+        const entry = session.exercises.find(e => e.id === exerciseId && !e.skipped);
+        if (entry && entry.weight && entry.sets && entry.reps) {
+            const vol = entry.sets * entry.reps * entry.weight;
+            if (vol > max) max = vol;
+        }
+    }
+
+    return max;
+}
+
+// --- User Profile ---
+
+/**
+ * Save the user profile (body weight, experience, medical flags).
+ * @param {object} profile
+ */
+export function saveProfile(profile) {
+    save('profile', profile);
+}
+
+/**
+ * Load the user profile.
+ * @returns {object|null}
+ */
+export function getProfile() {
+    return load('profile', null);
+}
+
+/**
+ * Check if a user profile exists (first-launch detection).
+ * @returns {boolean}
+ */
+export function hasProfile() {
+    return getProfile() !== null;
+}
+
+// --- Exercise Weight Tracking ---
+
+/**
+ * Save the current working weight for an exercise (primary or alt).
+ * @param {string} exerciseId
+ * @param {number} weight
+ * @param {boolean} isAlt - Whether this is the alternative exercise weight
+ */
+export function saveWeight(exerciseId, weight, isAlt = false) {
+    const key = isAlt ? `weight_alt_${exerciseId}` : `weight_${exerciseId}`;
+    save(key, weight);
+}
+
+/**
+ * Get the current working weight for an exercise.
+ * @param {string} exerciseId
+ * @param {boolean} isAlt
+ * @returns {number|null}
+ */
+export function getWeight(exerciseId, isAlt = false) {
+    const key = isAlt ? `weight_alt_${exerciseId}` : `weight_${exerciseId}`;
+    return load(key, null);
+}
+
+// --- Training Streak ---
+
+/**
+ * Get training dates for the consistency heat map.
+ * @returns {string[]} Array of ISO date strings
+ */
+export function getTrainingDates() {
+    const history = getHistory();
+    return history.map(s => s.date ? s.date.split('T')[0] : null).filter(Boolean);
+}
