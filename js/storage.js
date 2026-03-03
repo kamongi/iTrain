@@ -182,3 +182,47 @@ export function getTrainingDates() {
     const history = getHistory();
     return history.map(s => s.date ? s.date.split('T')[0] : null).filter(Boolean);
 }
+
+/**
+ * Update the most recently saved session with mood and notes.
+ * @param {string} notes - Short text note about the session
+ * @param {string} mood - One of: 'great', 'good', 'okay', 'tough'
+ */
+export function updateLatestSessionNotes(notes, mood) {
+    const history = load('history', []);
+    if (history.length === 0) return;
+    const last = history[history.length - 1];
+    last.notes = notes;
+    last.mood = mood;
+    save('history', history);
+}
+
+// --- Program Selection ---
+
+/**
+ * Get the user's current active program.
+ * @returns {{ id: string, startDate: string }}
+ */
+export function getCurrentProgram() {
+    return load('program', { id: 'foundation', startDate: new Date().toISOString() });
+}
+
+/**
+ * Switch to a new program (resets startDate to today).
+ * @param {string} programId
+ */
+export function setCurrentProgram(programId) {
+    save('program', { id: programId, startDate: new Date().toISOString() });
+}
+
+/**
+ * Get current week number within the active program (1-indexed).
+ * @returns {number}
+ */
+export function getCurrentProgramWeek() {
+    const { startDate } = getCurrentProgram();
+    const start = new Date(startDate);
+    const now = new Date();
+    const diffDays = Math.floor((now - start) / 86400000);
+    return Math.max(1, Math.floor(diffDays / 7) + 1);
+}

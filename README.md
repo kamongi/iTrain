@@ -129,6 +129,29 @@ iTrain/
 2. Select the **main** branch and root (`/`) folder
 3. Your app will be live at `https://<username>.github.io/iTrain/`
 
+## Citation
+
+If you use iTrain in your research, project, or build upon it, please cite it as:
+
+```
+Kamongi, P. (2026). iTrain: A Privacy-First Strength Training Companion [Software].
+GitHub. https://github.com/kamongi/iTrain
+```
+
+Or in BibTeX:
+
+```bibtex
+@software{kamongi2024itrain,
+  author  = {Kamongi, Patrick},
+  title   = {{iTrain}: A Privacy-First Strength Training Companion},
+  year    = {2026},
+  url     = {https://github.com/kamongi/iTrain},
+  note    = {Client-side progressive overload tracker with RPE-based auto-regulation}
+}
+```
+
+For questions or collaboration, contact: [info@kamongi.com](mailto:info@kamongi.com)
+
 ---
 
 *Inspired by Dr. John Rusin & Josh Shepherd*
