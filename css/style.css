@@ -659,6 +659,65 @@ footer {
     background: #200b0b;
 }
 
+/* === Install Banner === */
+#install-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: #0d1f0d;
+    border-bottom: 1px solid #1a3a1a;
+    padding: 10px 16px;
+    font-size: 0.8rem;
+    color: #a3c4a3;
+    flex-wrap: wrap;
+}
+
+.install-banner-msg {
+    flex: 1;
+    min-width: 0;
+    line-height: 1.4;
+}
+
+.install-banner-msg strong {
+    color: #6ee86e;
+}
+
+.install-banner-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.install-banner-btn {
+    border: none;
+    border-radius: 14px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 5px 12px;
+}
+
+.install-banner-install {
+    background: #166534;
+    color: #bbf7d0;
+}
+
+.install-banner-install:hover {
+    background: #15803d;
+}
+
+.install-banner-dismiss {
+    background: transparent;
+    color: #6b7280;
+    padding: 5px 8px;
+}
+
+.install-banner-dismiss:hover {
+    color: #9ca3af;
+}
+
 /* === Session Summary === */
 .session-summary {
     background: #111;

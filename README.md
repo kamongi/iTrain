@@ -4,6 +4,8 @@
 
 Hosted on [GitHub Pages](https://pages.github.com/). All data stays on your device.
 
+**Live app: [https://kamongi.github.io/iTrain/](https://kamongi.github.io/iTrain/)**
+
 ---
 
 ## Architecture

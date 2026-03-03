@@ -68,6 +68,60 @@ window.addEventListener('message', function (event) {
     });
 });
 
+// --- Install Banner ---
+// Captures the Android native install prompt before it fires so we can defer it.
+let _deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    _deferredInstallPrompt = e;
+});
+
+function maybeShowInstallBanner() {
+    // Skip if already dismissed, or already running as installed app
+    if (localStorage.getItem('itrain_install_dismissed')) return;
+    if (window.navigator.standalone) return; // iOS standalone mode
+    if (window.matchMedia('(display-mode: standalone)').matches) return; // Android standalone
+
+    const ua = navigator.userAgent;
+    const isIOS = /iphone|ipad|ipod/i.test(ua);
+    const isAndroid = /android/i.test(ua);
+
+    if (!isIOS && !isAndroid) return; // Desktop: skip
+
+    const msg = isIOS
+        ? `Tap the <strong>Share ⎙</strong> button in Safari, then <strong>"Add to Home Screen"</strong> for the best experience.`
+        : `Tap <strong>"Add to Home Screen"</strong> in your browser menu to use iTrain like a native app.`;
+
+    const banner = document.createElement('div');
+    banner.id = 'install-banner';
+    banner.innerHTML = `
+        <span class="install-banner-msg">${msg}</span>
+        <div class="install-banner-actions">
+            ${_deferredInstallPrompt ? `<button class="install-banner-btn install-banner-install" id="install-btn">Add to Home Screen</button>` : ''}
+            <button class="install-banner-btn install-banner-dismiss" id="install-dismiss">✕</button>
+        </div>
+    `;
+    document.body.insertBefore(banner, document.body.firstChild);
+
+    document.getElementById('install-dismiss').addEventListener('click', () => {
+        banner.remove();
+        localStorage.setItem('itrain_install_dismissed', '1');
+    });
+
+    const installBtn = document.getElementById('install-btn');
+    if (installBtn) {
+        installBtn.addEventListener('click', async () => {
+            _deferredInstallPrompt.prompt();
+            const { outcome } = await _deferredInstallPrompt.userChoice;
+            if (outcome === 'accepted') {
+                banner.remove();
+                localStorage.setItem('itrain_install_dismissed', '1');
+            }
+            _deferredInstallPrompt = null;
+        });
+    }
+}
+
 // --- Initialization ---
 export function init() {
     if (!storage.hasProfile()) {
@@ -75,6 +129,7 @@ export function init() {
     } else {
         renderApp();
     }
+    maybeShowInstallBanner();
 }
 
 function showProfileModal() {

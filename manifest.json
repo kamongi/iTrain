@@ -1,0 +1,10 @@
+{
+  "name": "iTrain",
+  "short_name": "iTrain",
+  "description": "Privacy-first strength training companion. Track progressive overload, auto-regulate intensity, and train smarter.",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "orientation": "portrait"
+}
