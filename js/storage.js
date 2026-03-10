@@ -226,3 +226,50 @@ export function getCurrentProgramWeek() {
     const diffDays = Math.floor((now - start) / 86400000);
     return Math.max(1, Math.floor(diffDays / 7) + 1);
 }
+
+// --- Data Portability ---
+
+/**
+ * Export all iTrain data as a structured JSON object.
+ * @returns {{ version: number, exportedAt: string, data: object }}
+ */
+export function exportAllData() {
+    const data = {};
+    for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith(STORAGE_PREFIX)) {
+            try { data[k] = JSON.parse(localStorage.getItem(k)); }
+            catch { data[k] = localStorage.getItem(k); }
+        }
+    }
+    return { version: 1, exportedAt: new Date().toISOString(), data };
+}
+
+/**
+ * Import a previously exported backup, overwriting current data.
+ * @param {{ version: number, data: object }} backup
+ */
+export function importAllData(backup) {
+    if (!backup || !backup.data) throw new Error('Invalid backup file.');
+    for (const [k, v] of Object.entries(backup.data)) {
+        if (k.startsWith(STORAGE_PREFIX)) {
+            localStorage.setItem(k, JSON.stringify(v));
+        }
+    }
+}
+
+/**
+ * Get the last month (YYYY-MM) when the backup reminder was shown.
+ * @returns {string|null}
+ */
+export function getLastBackupReminderMonth() {
+    return load('backup_reminded', null);
+}
+
+/**
+ * Record that the backup reminder was shown this month.
+ * @param {string} yearMonth - e.g. "2026-03"
+ */
+export function setLastBackupReminderMonth(yearMonth) {
+    save('backup_reminded', yearMonth);
+}

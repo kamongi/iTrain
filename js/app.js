@@ -122,6 +122,27 @@ function maybeShowInstallBanner() {
     }
 }
 
+// --- Backup Reminder ---
+function maybeShowBackupReminder() {
+    const now = new Date();
+    if (now.getDate() !== 1) return; // Only on the 1st of the month
+    const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    if (storage.getLastBackupReminderMonth() === thisMonth) return;
+
+    storage.setLastBackupReminderMonth(thisMonth);
+
+    const banner = document.createElement('div');
+    banner.id = 'backup-reminder';
+    banner.innerHTML = `
+        <span class="backup-reminder-msg">Monthly reminder: <strong>back up your training data</strong> so you never lose your progress.</span>
+        <div class="install-banner-actions">
+            <button class="install-banner-btn install-banner-install" onclick="window._itrainBackup();document.getElementById('backup-reminder').remove()">Backup Now</button>
+            <button class="install-banner-btn install-banner-dismiss" onclick="document.getElementById('backup-reminder').remove()">✕</button>
+        </div>
+    `;
+    document.body.insertBefore(banner, document.body.firstChild);
+}
+
 // --- Initialization ---
 export function init() {
     if (!storage.hasProfile()) {
@@ -130,6 +151,7 @@ export function init() {
         renderApp();
     }
     maybeShowInstallBanner();
+    maybeShowBackupReminder();
 }
 
 function showProfileModal() {
@@ -373,6 +395,24 @@ function renderDashboard() {
 
             <h3 class="mt-4 mb-2">Recent Sessions</h3>
             ${buildRecentSessions(history.slice(0, 5))}
+
+            <div class="home-card portability-card">
+                <div class="home-card-title">Data Portability</div>
+                <div class="portability-row">
+                    <div class="portability-item">
+                        <div class="portability-label">Backup Data</div>
+                        <div class="portability-hint">Download your data as a JSON file</div>
+                        <button class="portability-btn portability-btn-backup" onclick="window._itrainBackup()">Backup</button>
+                    </div>
+                    <div class="portability-divider"></div>
+                    <div class="portability-item">
+                        <div class="portability-label">Restore Data</div>
+                        <div class="portability-hint">Import a previously exported JSON backup</div>
+                        <button class="portability-btn portability-btn-restore" onclick="window._itrainRestorePick()">Restore</button>
+                        <input type="file" id="restore-file-input" accept=".json" style="display:none" onchange="window._itrainRestoreFile(this)">
+                    </div>
+                </div>
+            </div>
         </div>
     `;
 }
@@ -917,6 +957,44 @@ function setupGlobalHandlers(activeExercises, profile) {
             storage.clearAll();
             location.reload();
         }
+    };
+
+    // Backup — download all data as a JSON file
+    window._itrainBackup = function () {
+        const backup = storage.exportAllData();
+        const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const date = new Date().toISOString().split('T')[0];
+        a.href = url;
+        a.download = `itrain-backup-${date}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
+    // Restore — open file picker
+    window._itrainRestorePick = function () {
+        document.getElementById('restore-file-input')?.click();
+    };
+
+    // Restore — handle selected file
+    window._itrainRestoreFile = function (input) {
+        const file = input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            try {
+                const backup = JSON.parse(e.target.result);
+                if (!backup.data) throw new Error('Not a valid iTrain backup.');
+                if (!confirm('This will overwrite your current data with the backup. Continue?')) return;
+                storage.importAllData(backup);
+                location.reload();
+            } catch (err) {
+                alert('Restore failed: ' + err.message);
+            }
+        };
+        reader.readAsText(file);
+        input.value = ''; // reset so the same file can be re-selected if needed
     };
 
     // Auto-switch to saved tab after reload (e.g. after session completion)
