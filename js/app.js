@@ -94,11 +94,12 @@ function maybeShowInstallBanner() {
 
     const banner = document.createElement('div');
     banner.id = 'install-banner';
+    banner.className = 'app-banner';
     banner.innerHTML = `
         <span class="install-banner-msg">${msg}</span>
-        <div class="install-banner-actions">
-            ${_deferredInstallPrompt ? `<button class="install-banner-btn install-banner-install" id="install-btn">Add to Home Screen</button>` : ''}
-            <button class="install-banner-btn install-banner-dismiss" id="install-dismiss">✕</button>
+        <div class="banner-actions">
+            ${_deferredInstallPrompt ? `<button class="banner-btn banner-confirm" id="install-btn">Add to Home Screen</button>` : ''}
+            <button class="banner-btn banner-dismiss" id="install-dismiss">✕</button>
         </div>
     `;
     document.body.insertBefore(banner, document.body.firstChild);
@@ -129,18 +130,28 @@ function maybeShowBackupReminder() {
     const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
     if (storage.getLastBackupReminderMonth() === thisMonth) return;
 
-    storage.setLastBackupReminderMonth(thisMonth);
-
     const banner = document.createElement('div');
     banner.id = 'backup-reminder';
+    banner.className = 'app-banner';
     banner.innerHTML = `
         <span class="backup-reminder-msg">Monthly reminder: <strong>back up your training data</strong> so you never lose your progress.</span>
-        <div class="install-banner-actions">
-            <button class="install-banner-btn install-banner-install" onclick="window._itrainBackup();document.getElementById('backup-reminder').remove()">Backup Now</button>
-            <button class="install-banner-btn install-banner-dismiss" onclick="document.getElementById('backup-reminder').remove()">✕</button>
+        <div class="banner-actions">
+            <button class="banner-btn banner-confirm" id="backup-reminder-now">Backup Now</button>
+            <button class="banner-btn banner-dismiss" id="backup-reminder-dismiss">✕</button>
         </div>
     `;
     document.body.insertBefore(banner, document.body.firstChild);
+
+    // Mark as shown only after successful injection
+    storage.setLastBackupReminderMonth(thisMonth);
+
+    document.getElementById('backup-reminder-now').addEventListener('click', () => {
+        window._itrainBackup();
+        banner.remove();
+    });
+    document.getElementById('backup-reminder-dismiss').addEventListener('click', () => {
+        banner.remove();
+    });
 }
 
 // --- Initialization ---
@@ -962,14 +973,17 @@ function setupGlobalHandlers(activeExercises, profile) {
     // Backup — download all data as a JSON file
     window._itrainBackup = function () {
         const backup = storage.exportAllData();
-        const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        const date = new Date().toISOString().split('T')[0];
-        a.href = url;
-        a.download = `itrain-backup-${date}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
+        const url = URL.createObjectURL(
+            new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' })
+        );
+        try {
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `itrain-backup-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+        } finally {
+            URL.revokeObjectURL(url);
+        }
     };
 
     // Restore — open file picker

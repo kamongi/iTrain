@@ -43,17 +43,23 @@ export function remove(key) {
 }
 
 /**
+ * Return all localStorage keys that belong to iTrain.
+ * @returns {string[]}
+ */
+function getPrefixedKeys() {
+    const keys = [];
+    for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith(STORAGE_PREFIX)) keys.push(k);
+    }
+    return keys;
+}
+
+/**
  * Clear all iTrain data from localStorage.
  */
 export function clearAll() {
-    const keysToRemove = [];
-    for (let i = 0; i < localStorage.length; i++) {
-        const k = localStorage.key(i);
-        if (k && k.startsWith(STORAGE_PREFIX)) {
-            keysToRemove.push(k);
-        }
-    }
-    keysToRemove.forEach(k => localStorage.removeItem(k));
+    getPrefixedKeys().forEach(k => localStorage.removeItem(k));
 }
 
 // --- Session History ---
@@ -235,12 +241,9 @@ export function getCurrentProgramWeek() {
  */
 export function exportAllData() {
     const data = {};
-    for (let i = 0; i < localStorage.length; i++) {
-        const k = localStorage.key(i);
-        if (k && k.startsWith(STORAGE_PREFIX)) {
-            try { data[k] = JSON.parse(localStorage.getItem(k)); }
-            catch { data[k] = localStorage.getItem(k); }
-        }
+    for (const k of getPrefixedKeys()) {
+        try { data[k] = JSON.parse(localStorage.getItem(k)); }
+        catch { data[k] = localStorage.getItem(k); }
     }
     return { version: 1, exportedAt: new Date().toISOString(), data };
 }
